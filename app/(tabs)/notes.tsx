@@ -12,7 +12,7 @@ import { Fonts } from '@/constants/theme';
 
 export default function TabTwoScreen() {
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.container}>
       <View>
         <Text>About the app</Text>
       </View>

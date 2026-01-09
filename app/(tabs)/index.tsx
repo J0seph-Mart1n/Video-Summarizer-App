@@ -4,10 +4,11 @@ import { Platform, StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import { API_BASE_URL } from '../../constants/variables';
+import Markdown from 'react-native-markdown-display';
 
 export default function HomeScreen() {
   const [URLmessage, setURLmessage] = useState("");
-  const [summary, setSummary] = useState("Your summary will appear here...");
+  const [summary, setSummary] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSummarize = async () => {
@@ -79,7 +80,16 @@ export default function HomeScreen() {
         </View>
         <View style={styles.summaryContainer}>
           <ScrollView>
-            <Text style={styles.summaryText}>{summary}</Text>
+            {summary ? (
+              <Markdown style={styles.markdownStyles}>
+                {summary}
+              </Markdown>
+
+            ) : (
+              <Text style={styles.placeholderText}>
+                Your summary will appear here...
+              </Text>
+            )}
           </ScrollView>
         </View>
       </View>
@@ -153,4 +163,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: "#000",
   },
+  placeholderText: {
+    fontSize: 18,
+    lineHeight: 22,
+    color: "#888",
+    fontStyle: 'italic',
+  },
+  markdownStyles: {
+    fontSize: 18,
+  }
 });
