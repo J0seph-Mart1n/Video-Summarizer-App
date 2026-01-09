@@ -1,98 +1,156 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useState } from 'react';
+import { Platform, StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Keyboard } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from "@expo/vector-icons";
+import { API_BASE_URL } from '../../constants/variables';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [URLmessage, setURLmessage] = useState("");
+  const [summary, setSummary] = useState("Your summary will appear here...");
+  const [isLoading, setIsLoading] = useState(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const handleSummarize = async () => {
+    if (!URLmessage.trim()) {
+      Alert.alert("Error", "Please enter a YouTube link.");
+      return;
+    }
+
+    Keyboard.dismiss();
+    setIsLoading(true);
+    setSummary('');
+
+    try {
+      // 1. Send Request to Python Backend
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Matching the Pydantic model: class VideoRequest(BaseModel): url: str
+        body: JSON.stringify({ url: URLmessage }), 
+      });
+
+      // 2. Parse Response
+      const data = await response.json();
+
+      // 3. Handle Backend Errors (e.g., 400 Bad Request, 500 Server Error)
+      if (!response.ok) {
+        throw new Error(data.detail || "Something went wrong on the server.");
+      }
+
+      // 4. Update UI with the summary from Python
+      // Matching Pydantic model: class SummaryResponse(BaseModel): summary: str
+      setSummary(data.summary); 
+
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <View style={styles.titleContainer}>
+          <Text style={styles.titleStyle}>Video Summarizer</Text>
+          <Text style={styles.subtitleStyle}>Summarize your Youtube Videos by providing the URL</Text>
+        </View>
+        <View style={styles.inputContainer}>
+          <TextInput
+            value={URLmessage}
+            onChangeText={setURLmessage}
+            placeholder="Enter YouTube URL"
+            placeholderTextColor="#888"
+            multiline
+            style={styles.input}
+          />
+          <TouchableOpacity
+            onPress={() => handleSummarize()}
+            disabled={!URLmessage.trim()}
+            style={[
+              styles.sendButton,
+
+            ]}
+          >
+          <Ionicons name="send" size={18} color="#444141ff" />
+        </TouchableOpacity>
+        </View>
+        <View style={styles.summaryContainer}>
+          <ScrollView>
+            <Text style={styles.summaryText}>{summary}</Text>
+          </ScrollView>
+        </View>
+      </View>
+      
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+  },
+  titleContainer:{
+    flex: 1,
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    gap: 8,
+    paddingTop: 40,
+    padding: 30,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  titleStyle:{
+    fontSize: 30,
+    fontWeight: 'bold',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  subtitleStyle:{
+    fontSize: 17,
+    marginTop: 10,
+    textAlign: 'center',
+    color: 'gray',
+  },
+  inputContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    bottom: '12%',
+    backgroundColor: "#191b1bff",
+    borderRadius: 28,
+    paddingLeft: 16,
+    paddingRight: 12, // 👈 space for send button
+    paddingVertical: 6,
+    marginHorizontal: 15,
+  },
+  input: {
+    flex: 1,
+    maxHeight: 70,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    fontSize: 16,
+    color: "#ffffffff",
+  },
+  sendButton: {
+    marginLeft: 8,
+    backgroundColor: "#10a37f", // ChatGPT green
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  summaryContainer: {
+    backgroundColor: "#f8f8f8",
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    height: '55%',
+    borderWidth: 1,
+    borderColor: "#0b0b0bff",
+    bottom: '5%',
+  },
+  summaryText: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: "#000",
   },
 });
