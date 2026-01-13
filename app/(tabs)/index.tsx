@@ -1,10 +1,12 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Platform, StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Keyboard } from 'react-native';
+import { Platform, StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Keyboard, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import { API_BASE_URL } from '../../constants/variables';
 import Markdown from 'react-native-markdown-display';
+import { Skeleton } from 'react-native-skeletons';
+import StreamingText from '@/components/StreamingText';
 
 export default function HomeScreen() {
   const [URLmessage, setURLmessage] = useState("");
@@ -72,25 +74,34 @@ export default function HomeScreen() {
             disabled={!URLmessage.trim()}
             style={[
               styles.sendButton,
-
             ]}
           >
-          <Ionicons name="send" size={18} color="#444141ff" />
+          <Ionicons name="send" size={18} color="rgb(46, 41, 41)" />
         </TouchableOpacity>
         </View>
         <View style={styles.summaryContainer}>
-          <ScrollView>
-            {summary ? (
-              <Markdown style={styles.markdownStyles}>
-                {summary}
-              </Markdown>
-
-            ) : (
-              <Text style={styles.placeholderText}>
-                Your summary will appear here...
-              </Text>
-            )}
-          </ScrollView>
+            <ScrollView>
+              {summary ? (
+                <StreamingText
+                  text={summary}
+                  speed={50}
+                />
+              ) : (
+                isLoading ? (
+                  <View>
+                    <Text style={styles.generatingText}>Generating...</Text>
+                    <Skeleton count={1} width={'80%'} height={20} style={{ marginBottom: 10 }} />
+                    <Skeleton count={1} width={'60%'} height={20} style={{ marginBottom: 10 }} />
+                    <Skeleton count={1} width={'40%'} height={20} />
+                  </View>
+                ) : (
+                  <Text style={styles.placeholderText}>
+                    Your summary will appear here...
+                  </Text>
+                )
+              )}
+            </ScrollView>
+          
         </View>
       </View>
       
@@ -141,7 +152,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     marginLeft: 8,
-    backgroundColor: "#10a37f", // ChatGPT green
+    backgroundColor: "#41b699", // ChatGPT green
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -171,5 +182,12 @@ const styles = StyleSheet.create({
   },
   markdownStyles: {
     fontSize: 18,
-  }
+  },
+  generatingText:{ 
+    fontSize: 16, 
+    lineHeight: 22,
+    color: "#888",
+    fontStyle: 'italic',
+    paddingBottom: 10,
+  },
 });
