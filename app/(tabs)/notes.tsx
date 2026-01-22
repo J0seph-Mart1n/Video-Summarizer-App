@@ -1,16 +1,18 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet, View, Text, TouchableOpacity, Modal, FlatList, BackHandler, KeyboardAvoidingView, TextInput, ScrollView, Alert } from 'react-native';
+import { Platform, StyleSheet, View, Text, TouchableOpacity, Modal, FlatList, BackHandler, KeyboardAvoidingView, TextInput, ScrollView, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 import { fetchSummaries, updateSummaryDB, deleteSummaryDB } from '@/utils/database';
+import Ionicons from '@expo/vector-icons/build/Ionicons';
 
 export default function TabTwoScreen() {
   const [summaries, setSummaries] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
 
+  const [longPressedId, setLongPressedId] = useState(null);
 
   // Selected Item State
   const [selectedId, setSelectedId] = useState(null);
@@ -25,6 +27,7 @@ export default function TabTwoScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
+      setLongPressedId(null);
     }, [])
   );
 
@@ -61,12 +64,17 @@ export default function TabTwoScreen() {
       "Delete Note",
       "Are you sure you want to delete this summary?",
       [
-        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setLongPressedId(null)
+        },
         { 
           text: "Delete", 
           style: 'destructive',
           onPress: async () => {
             await deleteSummaryDB(id);
+            setLongPressedId(null);
             loadData(); // Refresh list immediately
           }
         }
@@ -89,32 +97,51 @@ export default function TabTwoScreen() {
     setModalVisible(true);
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <TouchableOpacity 
-        style={styles.cardContent} 
-        onPress={() => openModal(item)}
-      >
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {item.title || "Youtube Summary"}
-        </Text>
-        <Text style={styles.cardSummary} numberOfLines={2}>{item.body}</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const renderItem = ({ item }) => {
+    const isDeleteMode = longPressedId === item.id;
+
+    return (
+      <View style={styles.card}>
+        <TouchableOpacity 
+          style={styles.cardContent} 
+          onPress={() => isDeleteMode ? setLongPressedId(null) : openModal(item)}
+          onLongPress={() => setLongPressedId(item.id)}
+          delayLongPress={400} // Slight delay to prevent accidental triggers
+          activeOpacity={0.7}
+        >
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {item.title || "Youtube Summary"}
+          </Text>
+          <Text style={styles.cardSummary} numberOfLines={2}>{item.body}</Text>
+          {isDeleteMode && (
+            <View style={styles.deleteOverlay}>
+              <TouchableOpacity 
+                style={styles.deleteButton} 
+                onPress={() => handleDelete(item.id)}
+              >
+                <Ionicons name="trash" size={24} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.titleStyle}>Summaries</Text>
-      <FlatList
-        data={summaries}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No summaries saved yet.</Text>
-        }
-      />
+      <Pressable style={{flex: 1}} onPress={() => setLongPressedId(null)}>
+        <FlatList
+          data={summaries}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No summaries saved yet.</Text>
+          }
+        />
+      </Pressable>
       <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
           <KeyboardAvoidingView 
@@ -278,5 +305,40 @@ const styles = StyleSheet.create({
   },
   markdownWrapper: { 
     padding: 20 
+  },
+  deleteOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)', // Almost opaque white
+    justifyContent: 'flex-end',
+    zIndex: 10,
+    flexDirection: 'row',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FF3B30',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    alignItems: 'center',
+    shadowColor: "#FF3B30",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    elevation: 4,
+  },
+  deleteButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  cancelText: {
+    position: 'absolute',
+    bottom: 5,
+    fontSize: 10,
+    color: '#888',
   },
 });

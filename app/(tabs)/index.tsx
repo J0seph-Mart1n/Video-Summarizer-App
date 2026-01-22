@@ -1,17 +1,20 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Platform, StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Keyboard, ActivityIndicator } from 'react-native';
+import { Platform, StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Keyboard, ActivityIndicator, Modal, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from "@expo/vector-icons";
 import { API_BASE_URL } from '../../constants/variables';
 import Markdown from 'react-native-markdown-display';
 import { Skeleton } from 'react-native-skeletons';
 import StreamingText from '@/components/StreamingText';
+import { insertSummary } from '@/utils/database';
 
 export default function HomeScreen() {
   const [URLmessage, setURLmessage] = useState("");
-  const [summary, setSummary] = useState("");
+  const [summary, setSummary] = useState("This is a summary");
   const [isLoading, setIsLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [saveTitle, setSaveTitle] = useState("");
 
   const handleSummarize = async () => {
     if (!URLmessage.trim()) {
@@ -45,11 +48,31 @@ export default function HomeScreen() {
       // 4. Update UI with the summary from Python
       // Matching Pydantic model: class SummaryResponse(BaseModel): summary: str
       setSummary(data.summary); 
+      setSaveTitle("YouTube Summary");
 
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveToDB = async () => {
+    if (!saveTitle.trim()) {
+      Alert.alert("Error", "Please provide a title for your summary.");
+      return;
+    }
+
+    try {
+      // Save to SQLite
+      await insertSummary(URLmessage, saveTitle, summary);
+      
+      Alert.alert("Success", "Summary saved to your Notes tab!");
+      setModalVisible(false); // Close Modal
+      setSaveTitle(""); // Reset Title
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to save summary.");
     }
   };
 
@@ -101,9 +124,53 @@ export default function HomeScreen() {
                 )
               )}
             </ScrollView>
-          
         </View>
+        {summary && !isLoading && (
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.saveIconBtn}>
+            <Ionicons name="save" size={24} color="#ffffff" />
+          </TouchableOpacity>
+        )}
       </View>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Save Summary</Text>
+            <Text style={styles.modalSubtitle}>Enter a title for this note:</Text>
+            
+            <TextInput 
+              style={styles.modalInput}
+              placeholder="Enter title"
+              value={saveTitle}
+              onChangeText={setSaveTitle}
+              autoFocus
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.cancelBtn]} 
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.confirmBtn]} 
+                onPress={handleSaveToDB}
+              >
+                <Text style={styles.confirmBtnText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
       
     </SafeAreaView>
   );
@@ -133,7 +200,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     alignItems: 'center',
     flexDirection: 'row',
-    bottom: '12%',
+    bottom: '14%',
     backgroundColor: "#191b1bff",
     borderRadius: 28,
     paddingLeft: 16,
@@ -152,7 +219,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     marginLeft: 8,
-    backgroundColor: "#41b699", // ChatGPT green
+    backgroundColor: "#41b699",
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -167,7 +234,7 @@ const styles = StyleSheet.create({
     height: '55%',
     borderWidth: 1,
     borderColor: "#0b0b0bff",
-    bottom: '5%',
+    bottom: '8%',
   },
   summaryText: {
     fontSize: 16,
@@ -189,5 +256,104 @@ const styles = StyleSheet.create({
     color: "#888",
     fontStyle: 'italic',
     paddingBottom: 10,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  summaryLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#888',
+    textTransform: 'uppercase',
+  },
+  saveIconBtn: {
+    position: 'absolute',
+    bottom: '0.2%',
+    right: '5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    paddingVertical: 4,
+    paddingHorizontal: 11,
+    height: 45,
+    width: 45,
+    borderRadius: '40%',
+  },
+  saveBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 4,
+  },
+  
+  // ✅ Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+    backgroundColor: '#F9F9F9',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  cancelBtn: {
+    backgroundColor: '#f0f0f0',
+  },
+  confirmBtn: {
+    backgroundColor: '#2a2727',
+  },
+  cancelBtnText: {
+    color: '#333',
+    fontWeight: '600',
+  },
+  confirmBtnText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
