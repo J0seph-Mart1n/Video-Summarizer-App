@@ -1,3 +1,4 @@
+import { useTheme } from "@/hooks/ThemeContext";
 import React, { useEffect, useState } from "react";
 import { Text, StyleSheet } from "react-native";
 import Markdown from 'react-native-markdown-display';
@@ -12,6 +13,13 @@ export default function StreamingText({
   speed = 20,
 }: Props) {
   const [displayedText, setDisplayedText] = useState("");
+  const { colors } = useTheme(); 
+  const markdownStyles = {
+  body: {
+    color: colors.text,
+    fontSize: 17,
+  },
+};
 
   useEffect(() => {
     let index = 0;
@@ -29,5 +37,5 @@ export default function StreamingText({
     return () => clearInterval(interval);
   }, [text]);
 
-  return <Markdown>{displayedText}</Markdown>;
+  return <Markdown style={markdownStyles}>{displayedText}</Markdown>;
 }

@@ -8,6 +8,7 @@ import Markdown from 'react-native-markdown-display';
 import { Skeleton } from 'react-native-skeletons';
 import StreamingText from '@/components/StreamingText';
 import { insertSummary } from '@/utils/database';
+import { useTheme } from '@/hooks/ThemeContext';
 
 export default function HomeScreen() {
   const [URLmessage, setURLmessage] = useState("");
@@ -15,6 +16,7 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
+  const { theme, toggleTheme, colors } = useTheme(); 
 
   const handleSummarize = async () => {
     if (!URLmessage.trim()) {
@@ -77,20 +79,27 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={styles.container}>
         <View style={styles.titleContainer}>
-          <Text style={styles.titleStyle}>Video Summarizer</Text>
-          <Text style={styles.subtitleStyle}>Summarize your Youtube Videos by providing the URL</Text>
+          <TouchableOpacity onPress={toggleTheme} style={styles.darkmodeToggle}>
+            <Ionicons 
+              name={theme === 'light' ? 'moon' : 'sunny'} 
+              size={25} 
+              color={colors.text} 
+            />
+          </TouchableOpacity>
+          <Text style={[styles.titleStyle, { color: colors.text }]}>Video Summarizer</Text>
+          <Text style={[styles.subtitleStyle, { color: colors.subText }]}>Summarize your Youtube Videos by providing the URL</Text>
         </View>
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { backgroundColor: colors.inputBg }]}>
           <TextInput
             value={URLmessage}
             onChangeText={setURLmessage}
             placeholder="Enter YouTube URL"
             placeholderTextColor="#888"
             multiline
-            style={styles.input}
+            style={[styles.input, { color: colors.text }]}
           />
           <TouchableOpacity
             onPress={() => handleSummarize()}
@@ -102,7 +111,7 @@ export default function HomeScreen() {
           <Ionicons name="send" size={18} color="rgb(46, 41, 41)" />
         </TouchableOpacity>
         </View>
-        <View style={styles.summaryContainer}>
+        <View style={[styles.summaryContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <ScrollView>
               {summary ? (
                 <StreamingText
@@ -127,7 +136,7 @@ export default function HomeScreen() {
         </View>
         {summary && !isLoading && (
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.saveIconBtn}>
-            <Ionicons name="save" size={24} color="#ffffff" />
+            <Ionicons name="save" size={24} color='rgb(46, 41, 41)' />
           </TouchableOpacity>
         )}
       </View>
@@ -141,12 +150,12 @@ export default function HomeScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Save Summary</Text>
-            <Text style={styles.modalSubtitle}>Enter a title for this note:</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.modalBg }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Save Summary</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.subText }]}>Enter a title for this note:</Text>
             
             <TextInput 
-              style={styles.modalInput}
+              style={[styles.modalInput]}
               placeholder="Enter title"
               value={saveTitle}
               onChangeText={setSaveTitle}
@@ -179,6 +188,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  darkmodeToggle: {
+    position: 'absolute',
+    top: 10,
+    right: 20,
+    zIndex: 1,
   },
   titleContainer:{
     flex: 1,
@@ -278,7 +293,7 @@ const styles = StyleSheet.create({
     right: '5%',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#41b699',
     paddingVertical: 4,
     paddingHorizontal: 11,
     height: 45,

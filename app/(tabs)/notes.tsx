@@ -7,6 +7,7 @@ import { useFocusEffect } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 import { fetchSummaries, updateSummaryDB, deleteSummaryDB } from '@/utils/database';
 import Ionicons from '@expo/vector-icons/build/Ionicons';
+import { useTheme } from '@/hooks/ThemeContext';
 
 export default function TabTwoScreen() {
   const [summaries, setSummaries] = useState([]);
@@ -23,6 +24,8 @@ export default function TabTwoScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editBody, setEditBody] = useState('');
+
+  const { colors } = useTheme(); 
 
   useFocusEffect(
     useCallback(() => {
@@ -101,7 +104,7 @@ export default function TabTwoScreen() {
     const isDeleteMode = longPressedId === item.id;
 
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
         <TouchableOpacity 
           style={styles.cardContent} 
           onPress={() => isDeleteMode ? setLongPressedId(null) : openModal(item)}
@@ -109,12 +112,12 @@ export default function TabTwoScreen() {
           delayLongPress={400} // Slight delay to prevent accidental triggers
           activeOpacity={0.7}
         >
-          <Text style={styles.cardTitle} numberOfLines={1}>
+          <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
             {item.title || "Youtube Summary"}
           </Text>
-          <Text style={styles.cardSummary} numberOfLines={2}>{item.body}</Text>
+          <Text style={[styles.cardSummary, { color: colors.subText }]} numberOfLines={2}>{item.body}</Text>
           {isDeleteMode && (
-            <View style={styles.deleteOverlay}>
+            <View style={[styles.deleteOverlay, { backgroundColor: colors.card, opacity: 0.95 }]}>
               <TouchableOpacity 
                 style={styles.deleteButton} 
                 onPress={() => handleDelete(item.id)}
@@ -129,8 +132,8 @@ export default function TabTwoScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.titleStyle}>Summaries</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.titleStyle, { color: colors.text }]}>Summaries</Text>
       <Pressable style={{flex: 1}} onPress={() => setLongPressedId(null)}>
         <FlatList
           data={summaries}
@@ -143,7 +146,7 @@ export default function TabTwoScreen() {
         />
       </Pressable>
       <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.modalBg }]}>
           <KeyboardAvoidingView 
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 1 }}
@@ -164,20 +167,20 @@ export default function TabTwoScreen() {
               {/* ✅ Editable Title */}
               {isEditing ? (
                 <TextInput
-                  style={styles.inputTitle}
+                  style={[styles.inputTitle, { color: colors.text, borderColor: colors.border }]}
                   value={editTitle}
                   onChangeText={setEditTitle}
                   placeholder="Enter Title"
                 />
               ) : (
-                <Text style={styles.viewTitle}>{viewTitle}</Text>
+                <Text style={[styles.viewTitle, { color: colors.text }]}>{viewTitle}</Text>
               )}
 
               {/* ✅ Editable Body / Markdown View */}
               <View style={styles.bodyContainer}>
                 {isEditing ? (
                   <TextInput
-                    style={styles.inputBody}
+                    style={[styles.inputBody, { color: colors.text, borderColor: colors.border }]}
                     value={editBody}
                     onChangeText={setEditBody}
                     multiline
@@ -186,7 +189,7 @@ export default function TabTwoScreen() {
                   />
                 ) : (
                   <ScrollView >
-                    <Markdown>
+                    <Markdown style={{ body: { color: colors.text, fontSize: 17 } }}>
                       {viewBody}
                     </Markdown>
                   </ScrollView>

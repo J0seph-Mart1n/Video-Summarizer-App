@@ -5,9 +5,13 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/ThemeContext';
+import { TouchableOpacity } from 'react-native/Libraries/Components/Touchable/TouchableOpacity';
+import Ionicons from '@expo/vector-icons/build/Ionicons';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { theme, toggleTheme, colors } = useTheme(); 
 
   useEffect(() => {
     initDB()
@@ -18,9 +22,13 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+        },
+        tabBarActiveTintColor: colors.green,
+        tabBarInactiveTintColor: colors.subText,
         headerShown: false,
-        tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
         name="index"
